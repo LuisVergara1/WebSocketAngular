@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
-import { Router,NavigationEnd} from '@angular/router';
-import { filter } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-login',
@@ -11,28 +11,24 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './login.component.scss'
 })
 export class LoginComponent {
-  
-  roomIdInput:String = "";
-  userId: String = this.generateRandomId();
+  roomIdInput = '';
+  invitedRoomId = '';
 
+  displayName = '';
 
-  constructor(private router:Router)
-  {this.router.events.pipe(
-    filter(event => event instanceof NavigationEnd)
-  ).subscribe(()=>{});
-  
+  constructor(private router: Router, route: ActivatedRoute) {
+    route.queryParamMap.pipe(takeUntilDestroyed()).subscribe(params => {
+      this.invitedRoomId = params.get('sala')?.trim() ?? '';
+      this.roomIdInput = this.invitedRoomId;
+    });
   }
 
-  login(){
-    if(this.roomIdInput.trim()!= "")
-    {
-      this.router.navigate(["chat",this.roomIdInput.trim(),this.userId]);
+  login(): void {
+    const roomId = this.invitedRoomId || this.roomIdInput.trim();
+    if (roomId) {
+      void this.router.navigate(['/chat', roomId], {
+        state: { displayName: this.displayName.trim() }
+      });
     }
   }
-
-  private generateRandomId():String{
-    const randomId = Math.random().toString(36).substring(2,10);
-    return randomId;
-  }
-
 }

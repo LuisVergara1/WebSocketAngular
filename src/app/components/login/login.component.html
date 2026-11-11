@@ -1,13 +1,22 @@
+<main class="entry">
+  <section class="room-card" aria-labelledby="entry-title">
+    <div class="chat-mark" aria-hidden="true"><span></span></div>
+    <h1 id="entry-title">Chat rooms</h1>
+    <p class="intro">Elige un código nuevo o usa el que te compartieron.</p>
 
+    <form (ngSubmit)="login()">
+      <label for="room-code">Código de sala</label>
+      <input class="chat-input" id="room-code" name="roomCode" type="text"
+        [(ngModel)]="roomIdInput" [readOnly]="!!invitedRoomId" placeholder="p. ej. 123 o coffee-chat" required />
+      <label for="display-name">Nombre visible (opcional)</label>
+      <input class="chat-input" id="display-name" name="displayName" type="text"
+        [(ngModel)]="displayName" maxlength="24" autocomplete="nickname"
+        placeholder="Invitado aleatorio si lo dejas vacío" />
+      <button class="primary-button" type="submit" [disabled]="!roomIdInput.trim()">
+        Entrar a la sala <span aria-hidden="true">→</span>
+      </button>
+    </form>
 
-
-
-
-<div class="container">
-    <h1>Bienvenido  </h1>
-<h2>Puedes Crear una Sala Nueva </h2>
-<h2>o</h2> 
-<h2>Entrar a una Ya Existente</h2>
-    <input type="text" [(ngModel)]="roomIdInput" placeholder="Código de Sala" (keyup.enter)="login()"/>
-    <button (click)="login()">Crear o Ingresar</button>
-  </div>
+    <p class="entry-note">No necesitas una cuenta.</p>
+  </section>
+</main>

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Stomp } from '@stomp/stompjs';
+import { Client } from '@stomp/stompjs';
 import { BehaviorSubject } from 'rxjs';
 import SockJS from 'sockjs-client';
 import { environment } from '../environment';
@@ -9,41 +9,58 @@ import { ChatMessage } from '../models/chat-message';
   providedIn: 'root'
 })
 export class Chatservice {
+  private client?: Client;
+  private readonly messageSubject = new BehaviorSubject<ChatMessage[]>([]);
+  private readonly connectedSubject = new BehaviorSubject(false);
 
-  private stompClient: any
-  private messageSubject: BehaviorSubject<ChatMessage[]> = new BehaviorSubject<ChatMessage[]>([]);
+  readonly messages$ = this.messageSubject.asObservable();
+  readonly connected$ = this.connectedSubject.asObservable();
 
+  joinRoom(roomId: string): void {
+    this.leaveRoom();
 
-  constructor() {
-    this.initConnectionSocket();
-   }
+    const client = new Client({
+      webSocketFactory: () => new SockJS(environment.websocketUrl),
+      reconnectDelay: 3000,
+      onConnect: () => {
+        if (this.client !== client) {
+          return;
+        }
+        client.subscribe(`/topic/${roomId}`, ({ body }) => {
+          if (this.client === client) {
+            const message: ChatMessage = JSON.parse(body);
+            this.messageSubject.next([...this.messageSubject.value, message]);
+          }
+        });
+        this.connectedSubject.next(true);
+      },
+      onWebSocketClose: () => {
+        if (this.client === client) {
+          this.connectedSubject.next(false);
+        }
+      }
+    });
 
-   initConnectionSocket()
-   {
-     const url = '//localhost:3001'
-     const socket = new SockJS(url);
-     this.stompClient = Stomp.over(socket);
-   }
-
-
-   joinRoom(roomId: string) {
-    this.stompClient.connect({}, ()=>{
-      this.stompClient.subscribe(`/topic/${roomId}`, (messages: any) => {
-        const messageContent = JSON.parse(messages.body);
-        const currentMessage = this.messageSubject.getValue();
-        currentMessage.push(messageContent);
-
-        this.messageSubject.next(currentMessage);
-
-      })
-    })
+    this.client = client;
+    client.activate();
   }
 
-  sendMessage(roomId: string, chatMessage: ChatMessage) {
-    this.stompClient.send(`/app/chat/${roomId}`, {}, JSON.stringify(chatMessage))
+  leaveRoom(): void {
+    const client = this.client;
+    this.client = undefined;
+    this.connectedSubject.next(false);
+    this.messageSubject.next([]);
+    void client?.deactivate();
   }
 
-  getMessageSubject(){
-    return this.messageSubject.asObservable();
+  sendMessage(roomId: string, message: ChatMessage): boolean {
+    if (!this.client?.connected) {
+      return false;
+    }
+    this.client.publish({
+      destination: `/app/chat/${roomId}`,
+      body: JSON.stringify(message)
+    });
+    return true;
   }
 }
