@@ -14,17 +14,23 @@
     </header>
 
     <div class="conversation" #messageContainer role="log" aria-label="Mensajes de la sala">
-      <div class="empty-state" *ngIf="messageList.length === 0">
-        <h2>Inicia la conversación</h2>
-        <p>Comparte el enlace para invitar a alguien a la sala.</p>
-      </div>
-      <ul class="messages" *ngIf="messageList.length">
-        <li class="message" *ngFor="let item of messageList"
-          [class.own-message]="item.user === userId">
-          <span class="sender">{{ item.user === userId ? 'Tú' : (item.displayName || item.user) }}</span>
-          <p>{{ item.message }}</p>
-        </li>
-      </ul>
+      @if (messageList.length === 0) {
+        <div class="empty-state">
+          <h2>Inicia la conversación</h2>
+          <p>Comparte el enlace para invitar a alguien a la sala.</p>
+        </div>
+      }
+      @if (messageList.length) {
+        <ul class="messages">
+          @for (item of messageList; track item) {
+            <li class="message"
+              [class.own-message]="item.user === userId">
+              <span class="sender">{{ item.user === userId ? 'Tú' : (item.displayName || item.user) }}</span>
+              <p>{{ item.message }}</p>
+            </li>
+          }
+        </ul>
+      }
     </div>
 
     <footer class="composer">
@@ -33,12 +39,16 @@
           placeholder="Escribe un mensaje…" [(ngModel)]="messageInput" required />
         <button class="primary-button" type="submit" [disabled]="!(connected$ | async) || !messageInput.trim()">Enviar</button>
       </form>
-      <p *ngIf="!(connected$ | async)">Conectando con la sala…</p>
+      @if (!(connected$ | async)) {
+        <p>Conectando con la sala…</p>
+      }
       <p>Los mensajes no se guardan.</p>
       <p role="status" [hidden]="!invitationStatus">{{ invitationStatus }}</p>
-      <input *ngIf="manualInvitationUrl" class="chat-input invitation-url"
-        aria-label="Enlace de invitación" [value]="manualInvitationUrl" readonly
-        (focus)="$any($event.target).select()" />
+      @if (manualInvitationUrl) {
+        <input class="chat-input invitation-url"
+          aria-label="Enlace de invitación" [value]="manualInvitationUrl" readonly
+          (focus)="$any($event.target).select()" />
+      }
     </footer>
   </section>
 </main>
